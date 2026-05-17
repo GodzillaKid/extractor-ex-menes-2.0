@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Extractor de Exámenes HHHA</title>
+<style>
+:root{
+  --bg:#0a0f0a;--bg2:#111811;--card:#0e160e;
+  --border:#1f2e1f;--border2:#2a3d2a;
+  --text:#d4f5d4;--text2:#7fb87f;--text3:#4a7a4a;
+  --accent:#39ff14;--accent2:#2bc910;
+  --r:8px;--rs:6px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;}
+#matrix-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.18;}
+.wrap{position:relative;z-index:1;max-width:840px;margin:0 auto;padding:32px 16px 56px;}
+.header{text-align:center;margin-bottom:32px;}
+.header-badge{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--accent2);text-transform:uppercase;border:1px solid var(--border2);border-radius:4px;padding:3px 10px;margin-bottom:14px;}
+.header h1{font-size:26px;font-weight:700;letter-spacing:-.01em;color:var(--accent);text-shadow:0 0 24px rgba(57,255,20,.35);margin-bottom:6px;font-family:var(--mono);}
+.header .sub{color:var(--text2);font-size:13px;font-family:var(--mono);}
+.card{background:rgba(14,22,14,.85);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;backdrop-filter:blur(4px);}
+.card:hover{border-color:var(--border2);transition:border-color .2s}
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.lbl{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);font-family:var(--mono)}
+textarea{width:100%;min-height:200px;padding:12px;font-family:var(--mono);font-size:13px;line-height:1.5;resize:vertical;background:rgba(0,8,0,.7);color:var(--text);border:1px solid var(--border);border-radius:var(--rs);outline:none;transition:border-color .15s;caret-color:var(--accent);}
+textarea:focus{border-color:var(--accent2);}
+textarea::placeholder{color:var(--text3);}
+.ctrl{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
+button{background:rgba(14,22,14,.9);color:var(--text2);border:1px solid var(--border2);border-radius:var(--rs);padding:7px 14px;font-size:13px;font-family:var(--mono);font-weight:600;cursor:pointer;transition:all .15s;letter-spacing:.04em;}
+button:hover{background:rgba(57,255,20,.08);color:var(--accent);border-color:var(--accent2);}
+button.pri{background:rgba(57,255,20,.1);color:var(--accent);border-color:var(--accent2);box-shadow:0 0 12px rgba(57,255,20,.15);}
+button.pri:hover{background:rgba(57,255,20,.18);box-shadow:0 0 20px rgba(57,255,20,.25);}
+button.sm{font-size:11px;padding:5px 10px;}
+.chk{font-size:12px;color:var(--text2);font-family:var(--mono);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;letter-spacing:.03em;}
+.chk input{accent-color:var(--accent);cursor:pointer;}
+.ml{margin-left:auto}
+#out{display:none;margin-top:14px}
+#linea{background:rgba(0,8,0,.8);border:1px solid var(--border2);border-radius:var(--rs);padding:14px;font-family:var(--mono);font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--accent);text-shadow:0 0 8px rgba(57,255,20,.2);}
+#info{margin-top:8px;font-size:11px;color:var(--text3);font-family:var(--mono);}
+.slbl{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:var(--mono);margin:16px 0 8px}
+.grid{display:grid;grid-template-columns:2fr 1fr;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;font-family:var(--mono);font-size:12px;}
+.grid>div{padding:5px 10px;border-bottom:1px solid var(--border);}
+.grid>div:nth-last-child(-n+2){border-bottom:none}
+.gh{background:rgba(57,255,20,.05);font-weight:700;color:var(--text2);letter-spacing:.05em;}
+.gv{color:var(--accent);}
+.contact-note{margin-top:14px;padding:12px 16px;background:rgba(57,255,20,.04);border:1px solid var(--border);border-left:3px solid var(--accent2);border-radius:var(--rs);font-family:var(--mono);font-size:12px;color:var(--text2);line-height:1.7;}
+.contact-note a{color:var(--accent2);text-decoration:none;}
+.contact-note a:hover{color:var(--accent);text-decoration:underline;}
+details{margin-top:12px;}
+details summary{cursor:pointer;font-size:12px;font-family:var(--mono);color:var(--text2);letter-spacing:.05em;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px;}
+details summary::before{content:'▶';font-size:9px;transition:transform .2s;color:var(--accent2)}
+details[open] summary::before{transform:rotate(90deg)}
+details>div{padding:12px 14px;background:rgba(0,8,0,.5);border:1px solid var(--border);border-radius:var(--rs);font-size:12px;font-family:var(--mono);line-height:1.9;color:var(--text2);margin-top:4px;}
+details>div b{color:var(--accent2)}
+.footer{text-align:center;color:var(--text3);font-size:11px;font-family:var(--mono);margin-top:32px;letter-spacing:.05em;}
+</style>
+</head>
+<body>
+<canvas id="matrix-canvas"></canvas>
+<div class="wrap">
+  <div class="header">
+    <div class="header-badge">Hospital Dr. Hernán Henríquez Aravena · Temuco</div>
+    <h1>EXTRACTOR DE EXÁMENES HHHA</h1>
+    <p class="sub">Pega el informe · obtén la línea compacta para tu evolución</p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span class="lbl">// texto del informe</span>
+      <button id="bej" class="sm">[ cargar ejemplo ]</button>
+    </div>
+    <textarea id="entrada" placeholder="Pega aquí el informe de laboratorio completo.&#10;&#10;Funciona con el formato exacto del HHHA y del Hospital Nueva Imperial, incluyendo:&#10;• Nombres partidos en múltiples líneas&#10;• Flags h / i / VC entre nombre y valor&#10;• Bloques INTERPRETACION entre nombre y valor&#10;• Métodos intercalados"></textarea>
+    <div class="ctrl">
+      <button id="bex" class="pri">[ extraer resultados ]</button>
+      <button id="bcl">[ limpiar ]</button>
+      <label class="chk ml"><input type="checkbox" id="cfecha" checked> fecha al inicio</label>
+      <label class="chk"><input type="checkbox" id="cabr" checked> abreviar nombres</label>
+    </div>
+  </div>
+
+  <div id="out" class="card">
+    <div class="row">
+      <span class="lbl">// línea para evolución</span>
+      <button id="bcop" class="sm">[ <span id="tcop">copiar</span> ]</button>
+    </div>
+    <div id="linea"></div>
+    <div id="info"></div>
+    <div class="slbl">// exámenes reconocidos</div>
+    <div id="tabla"></div>
+    <div class="contact-note">
+      ⚠ Si algún examen no fue reconocido, envía el nombre exacto tal como aparece en el informe a
+      <a href="mailto:o.carrasquel01@ufromail.cl?subject=Examen%20no%20reconocido%20-%20Extractor%20HHHA">o.carrasquel01@ufromail.cl</a>
+      para agregarlo al diccionario.
+    </div>
+  </div>
+
+  <details>
+    <summary>exámenes reconocidos por el diccionario</summary>
+    <div>
+      <b>Hematología:</b> hb, hcto, leucocitos, eritrocitos, segm/linfo/mono/eosin/baso (abs y %), plaq, VCM, HCM, CHCM, RDW, RDW-SD, MPV, reticulocitos, VHS<br>
+      <b>Fórmula manual:</b> características eritrocitos, características leucocitos, características plaquetas, mielocitos<br>
+      <b>Coagulación:</b> INR, %TP, TP-seg, TTPA, fibrinógeno, dímero-D<br>
+      <b>Bioquímica:</b> glucosa, creatinina, VFG, urea, BUN, ácido úrico, Na, K, Cl, Ca, Ca-iónico, Mg, P, albúmina, proteínas totales, osmolaridad, amonio<br>
+      <b>Hierro:</b> hierro, TIBC, UIBC, saturación transferrina, transferrina, ferritina<br>
+      <b>Hepático:</b> GOT, GPT, GGT, FA, biliD/I/T, LDH, haptoglobina<br>
+      <b>Inflamación:</b> PCR, procalcitonina, lactato<br>
+      <b>Gases:</b> pH, pCO2, pO2, HCO3, TCO2, BEB, SBC, SatO2, FiO2<br>
+      <b>Cardíaco:</b> troponina I/T, CK, CK-MB, BNP, NT-proBNP<br>
+      <b>Endocrino:</b> TSH, T4 libre, T3, HbA1c, cortisol, PTH, vitamina D<br>
+      <b>Digestivo:</b> amilasa, lipasa, B12, folato<br>
+      <b>Lípidos:</b> colesterol total, HDL, LDL, triglicéridos, VLDL<br>
+      <b>Autoinmune:</b> ANA, título ANA, Anti-ENA, Anti-dsDNA, ANCA-C, ANCA-P, MPO, PR3, Anti-CCP, C3, C4, FR, Anti-Ro52, Anti-Jo1<br>
+      <b>Hepatitis / VIH:</b> HBsAg (cualit./cuantit.), Anti-HBs, Anti-HBc, Anti-HCV, VIH, VDRL<br>
+      <b>Inmunoglobulinas:</b> IgA, IgG, IgM, IgE<br>
+      <b>Marcadores tumorales:</b> AFP, CEA, PSA libre/total, CA-125, CA 19-9<br>
+      <b>PCR respiratorio:</b> COVID, Influenza A/B, VRS, Adenovirus, Metapneumovirus, Parainfluenza, Rinovirus<br>
+      <b>Orina:</b> creatinuria, microalbuminuria, rel. micro/creat, proteínas 24h, diuresis<br>
+      <b>Sedimento:</b> leucocitos xCPO, eritrocitos xCPO, características eritrocitos, cilindros, cristales, bacterias<br>
+      <b>Otros:</b> Quantiferon TB, grupo ABO, factor Rh
+    </div>
+  </details>
+
+  <p class="footer">funciona localmente · no envía datos a ningún servidor · ctrl/cmd+enter para extraer</p>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ════════════════════════════════════════════════════
+// MATRIX RAIN
+// ════════════════════════════════════════════════════
+(function(){
+  const cv=document.getElementById('matrix-canvas');
+  const ctx=cv.getContext('2d');
+  const chars='アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>{}[]|';
+  let cols,drops,W,H;
+  function resize(){W=cv.width=window.innerWidth;H=cv.height=window.innerHeight;cols=Math.floor(W/16);drops=Array(cols).fill(1);}
+  resize();window.addEventListener('resize',resize);
+  function draw(){
+    ctx.fillStyle='rgba(10,15,10,0.05)';ctx.fillRect(0,0,W,H);ctx.font='14px monospace';
+    for(let i=0;i<drops.length;i++){
+      const ch=chars[Math.floor(Math.random()*chars.length)];
+      const b=Math.random();
+      if(b>.95)ctx.fillStyle='#bfffbf';else if(b>.7)ctx.fillStyle='#39ff14';else ctx.fillStyle='#1a6b1a';
+      ctx.fillText(ch,i*16,drops[i]*16);
+      if(drops[i]*16>H&&Math.random()>.975)drops[i]=0;
+      drops[i]++;
+    }
+  }
+  setInterval(draw,60);
+})();
+
+// ════════════════════════════════════════════════════
+// NORMALIZACIÓN DE CARACTERES
+// ════════════════════════════════════════════════════
+function norm(t){
+  return t.toLowerCase()
+    .replace(/[áä]/g,'a').replace(/[éë]/g,'e')
+    .replace(/[íï]/g,'i').replace(/[óö]/g,'o')
+    .replace(/[úü]/g,'u').replace(/ñ/g,'n');
+}
+
+// ════════════════════════════════════════════════════
+// PREPARACIÓN DEL TEXTO PARA BÚSQUEDA
+// Dos capas:
+// 1. Normalizar whitespace (colapsar saltos de línea → espacios)
+// 2. Devolver texto normalizado (norm) para búsqueda
+// ════════════════════════════════════════════════════
+function prepararTexto(texto){
+  let t = texto
+    .replace(/\r?\n/g,' ')        // newlines → espacios
+    .replace(/\/\s+/g,'/')        // "/ " → "/" (PDFs que parten después del /)
+    .replace(/\s{2,}/g,' ')       // colapsa espacios múltiples
+    .trim();
+
+  t = norm(t);
+
+  // ── Elimina bloques INTERPRETACION ──────────────────────────────────────
+  // Patrón: "interpretacion" seguido de categorías de clasificación
+  // con operadores de comparación o rangos numéricos
+  // Ej: "Negativo <= 20  Positivo Débil 21 - 30  Positivo Fuerte > 30"
+  t = t.replace(
+    /\s+(?:negativo|positivo(?:\s+(?:debil|fuerte|moderado))?|no\s+concluyente|indeterminado)\s*(?:[<>≤≥=]{1,2}\s*\d+(?:[.,]\d+)?(?:\s*[-–]\s*\d+(?:[.,]\d+)?)?|\d+(?:[.,]\d+)?(?:\s*[-–]\s*\d+(?:[.,]\d+)?)?)/g,
+    ''
+  );
+  t = t.replace(/\binterpretaci[oó]n\b\s*/g,' ');
+
+  // ── Elimina flags h / i / VC sueltos entre datos ─────────────────────────
+  // Solo cuando aparecen solos (no como parte de una palabra)
+  t = t.replace(/(?:^|\s)(?:h|i|vc)\s+(?=[a-z0-9<>≤≥])/g,' ');
+
+  // ── Elimina nombres de métodos (aparecen entre nombre y valor) ───────────
+  const METHODS = new RegExp('\\b(?:' + [
+    'inmunofluorescencia\\s+indirecta',
+    'inmunoturbidim[eé]tric[oa]?','inmunoturbidimetria',
+    'citometria\\s+de\\s+flujo(?:\\s+fluorescente)?',
+    'jaff[eé][\\s-]+cin[eé]tico','uv\\s+cin[eé]tico',
+    'coagulom[eé]trico','starmaxpit',
+    'eclia','elisa\\s+(?:indirecto|sandwich|por\\s+tecnica\\s+de\\s+inmunoblot)',
+    'test\\s+calculado','calculado',
+    'colorim[eé]tric[oa]','impedancia','reflectancia',
+    'fotometria','amperometr[ií]a','electrodo\\s+ion\\s+selectivo',
+    'biuret','hexoquinasa','inmunocromatografia',
+    'cobprohini','cal6000pit','reoscopia\\s+fotometrica',
+    'verde\\s+bromocresol','nac\\s+activado','uv\\s+inmunologico',
+    'hplc','gpo\\s*pap','rt-pcr\\s+en\\s+tiempo\\s+real',
+    'microhemaglutinacion\\s+en\\s+columna',
+    'enzim[aá]tico\\s+con\\s+glutamato','lactato\\s+a\\s+piruvato',
+    'p-nitrofenil\\s+fosfato','fosfomolibdato-uv',
+    'g-glutamil-carboxi-nitroanilida','i\\.f\\.c\\.c',
+    'piridoxal\\s+fosfato','tampon\\s+tris',
+    'cobprohini','cal6000pit','cob221hini',
+  ].join('|') + ')\\b','g');
+  t = t.replace(METHODS,' ');
+
+  // ── Elimina líneas de tecnología ─────────────────────────────────────────
+  t = t.replace(/tecnolog[ií]a\s*:[^A-ZÁÉÍÓÚÑ\d]{0,80}/g,' ');
+
+  // ── Limpia espacios resultantes ───────────────────────────────────────────
+  t = t.replace(/\s{2,}/g,' ').trim();
+  return t;
+}
+
+// ════════════════════════════════════════════════════
+// DICCIONARIO DE EXÁMENES
+// Orden importa: más específicos primero dentro de cada examen.
+// ════════════════════════════════════════════════════
+const EXAMENES=[
+
+  // ── Hematología ────────────────────────────────────────────────────────────
+  {ab:'hb',       p:['hemoglobina','hgb','hb']},
+  {ab:'hcto',     p:['hematocrito','hcto','hto','hct']},
+  {ab:'leuco',    p:['recuento de leucocitos','leucocitos','leuco','gb','wbc','rcto leucocitos']},
+  {ab:'gr',       p:['recuento de eritrocitos','eritrocitos','globulos rojos','rbc']},
+  {ab:'segm%',    p:['neutrofilos %','neutrofilos%','segmentados %','segmentados%','neutrofilos / 100 leucocitos en sangre']},
+  {ab:'segm',     p:['segmentados','neutrofilos segmentados','neutrofilos','neut','pmn','segm']},
+  {ab:'linfo%',   p:['linfocitos %','linfocitos%','linfocitos / 100 leucocitos en sangre']},
+  {ab:'linfo',    p:['linfocitos','linf','lymph','linfo']},
+  {ab:'mono%',    p:['monocitos %','monocitos%','monocitos / 100 leucocitos en sangre']},
+  {ab:'mono',     p:['monocitos','mono']},
+  {ab:'eosin%',   p:['eosinofilos %','eosinofilos%']},
+  {ab:'eosin',    p:['eosinofilos','eosin','eos']},
+  {ab:'baso%',    p:['basofilos %','basofilos%','basofilos / 100 leucocitos en sangre']},
+  {ab:'baso',     p:['basofilos','baso']},
+  {ab:'mielocitos',p:['mielocitos / 100 leucocitos en sangre','mielocitos']},
+  {ab:'plaq',     p:['recuento de plaquetas','plaquetas','plaq','plt','rcto plaquetas']},
+  {ab:'vcm',      p:['vcm- volumen corpuscular medio','vcm-volumen corpuscular medio','volumen corpuscular medio','vcm','mcv']},
+  {ab:'hcm',      p:['hcm - hb corpuscular media','hcm-hb corpuscular media','hemoglobina corpuscular media','hb corpuscular media','hcm','mch']},
+  {ab:'chcm',     p:['chcm - conc. hb corpuscular media','chcm-conc. hb corpuscular media','concentracion hb corpuscular media','chcm','mchc']},
+  {ab:'rdw-sd',   p:['rdw-sd']},
+  {ab:'rdw',      p:['rdw']},
+  {ab:'mpv',      p:['mpv']},
+  {ab:'vhs',      p:['velocidad de eritrosedimentacion (vhs) sangre','velocidad de eritrosedimentacion (vhs)','velocidad de eritrosedimentacion','eritrosedimentacion','vhs','esr']},
+  {ab:'reticulo', p:['reticulocitos','retic']},
+
+  // ── Fórmula manual: características morfológicas ─────────────────────────
+  {ab:'car-eri',  p:['caracteristicas eritrocitos','caracteristicas de eritrocitos']},
+  {ab:'car-leu',  p:['caracteristicas leucocitos','caracteristicas de leucocitos']},
+  {ab:'car-plaq', p:['caracteristicas plaquetas','caracteristicas de plaquetas']},
+
+  // ── Coagulación ────────────────────────────────────────────────────────────
+  {ab:'inr',      p:['inr']},
+  {ab:'%tp',      p:['%tp','% tp','porcentaje protrombina','% protrombina','tp %','protrombina %']},
+  {ab:'tp-seg',   p:['tiempo de protrombina','pt segundos']},
+  {ab:'ttpa',     p:[
+    'tiempo de tromboplastina parcial activado',
+    'tiempo de tromboplastina parcial',
+    'tiempo tromboplastina parcial activado',
+    'tromboplastina parcial activado',
+    'tromboplastina parcial','ttpa','ttpk','aptt','ptt'
+  ]},
+  {ab:'fibri',    p:['fibrinogeno']},
+  {ab:'dd',       p:['dimero d','dimero-d','d-dimero','dd']},
+
+  // ── Bioquímica ─────────────────────────────────────────────────────────────
+  {ab:'glu',      p:['glucosa','glicemia','glu']},
+  {ab:'crea',     p:['creatinina','crea','creat']},
+  {ab:'vfg',      p:['vfg','tfg','fge','egfr','gfr','velocidad de filtracion glomerular','filtrado glomerular','clearance de creatinina','clearance creatinina']},
+  {ab:'urea',     p:['urea']},
+  {ab:'bun',      p:['nitrogeno ureico (bun)','nitrogeno ureico bun','nitrogeno ureico','bun','nu']},
+  {ab:'au',       p:['acido urico','urato']},
+  {ab:'osm',      p:['osmolaridad','osmolalidad','osm']},
+  {ab:'amonio',   p:['amonio','amoniemia','ammonium']},
+
+  // ── Electrolitos ───────────────────────────────────────────────────────────
+  {ab:'na',       p:['electrolito sodio','sodio serico','natremia','sodio','na']},
+  {ab:'k',        p:['electrolito potasio','potasio serico','kalemia','potasio','k']},
+  {ab:'cl',       p:['electrolito cloro','cloro serico','cloremia','cloro','cl']},
+  {ab:'cai',      p:['calcio ionico','calcio ionizado','ca ionico','ca ionizado','cai']},
+  {ab:'ca',       p:['calcio serico','calcemia','calcio']},
+  {ab:'mg',       p:['magnesio serico','magnesemia','magnesio']},
+  {ab:'p',        p:['fosforo serico','fosfatemia','fosfato','fosforo']},
+  {ab:'alb',      p:['albumina','alb']},
+  {ab:'ptot',     p:['proteinas totales','ptot']},
+
+  // ── Metabolismo del hierro ─────────────────────────────────────────────────
+  {ab:'hierro',   p:['hierro serico','sideremia','hierro']},
+  {ab:'tibc',     p:['capacidad de fijacion de hierro','capacidad fijacion hierro','tibc','ctfh']},
+  {ab:'uibc',     p:['uibc','capacidad de fijacion insaturada de hierro','capacidad fijacion insaturada']},
+  {ab:'sat-fe',   p:['saturacion de transferrina','saturacion transferrina','sat transferrina']},
+  {ab:'transferrina',p:['transferrina']},
+  {ab:'ferritina',p:['ferritina']},
+
+  // ── Hepático ───────────────────────────────────────────────────────────────
+  {ab:'got',      p:['aspartato amino transferasa (asat/got)','aspartato amino transferasa','transaminasa oxalacetica','got','ast','sgot','asat']},
+  {ab:'gpt',      p:['alanina amino transferasa (alat/gpt)','alanina amino transferasa','transaminasa piruvica','gpt','alt','sgpt','alat']},
+  {ab:'ggt',      p:['gamaglutamil transferasa (ggt)','gamaglutamil transferasa','gammaglutamiltransferasa','gamma-glutamil','gamma gt','ggt']},
+  {ab:'fa',       p:['fosfatasas alcalinas','fosfatasa alcalina','fa','alp']},
+  {ab:'bilid',    p:['bilirrubina directa','bili directa','bilirrubina d','bilid','bd']},
+  {ab:'bilii',    p:['bilirrubina indirecta','bili indirecta','bilirrubina i','bilii','bi']},
+  {ab:'bilit',    p:['bilirrubina total','bili total','bilirrubina','bilit','bt']},
+  {ab:'ldh',      p:['lactato deshidrogenasa','deshidrogenasa lactica','ldh']},
+  {ab:'haptoglobina',p:['haptoglobina']},
+
+  // ── Inflamación / infección ────────────────────────────────────────────────
+  {ab:'pcr',      p:['proteina c reactiva (crp)','proteina c reactiva','pcr','crp']},
+  {ab:'pct',      p:['procalcitonina','pct']},
+  {ab:'lactato',  p:['acido lactico','lactato']},
+
+  // ── Gases arteriales / venosos ────────────────────────────────────────────
+  {ab:'ph',       p:['ph']},
+  {ab:'pco2',     p:['pco2','paco2']},
+  {ab:'po2',      p:['po2','pao2']},
+  {ab:'hco3',     p:['hco3','bicarbonato']},
+  {ab:'tco2',     p:['tco2','co2 total']},
+  {ab:'eb',       p:['exceso de base','exceso base','beb','eb','be']},
+  {ab:'sbc',      p:['sbc','bicarbonato estandar','standard bicarbonate']},
+  {ab:'sato2',    p:['% saturacion o2','% saturacion o2','saturacion de oxigeno','saturacion o2','sao2','sato2']},
+  {ab:'fio2',     p:['fio2']},
+
+  // ── Cardíaco ───────────────────────────────────────────────────────────────
+  {ab:'tropoi',   p:['troponina i','tni','troponina ultrasensible i']},
+  {ab:'tropot',   p:['troponina t','tnt','troponina ultrasensible t','troponina ultrasensible']},
+  {ab:'tropo',    p:['troponina']},
+  {ab:'ckmb',     p:['creatinkinasa mb','ck-mb','ck mb','ckmb']},
+  {ab:'ck',       p:['creatin kinasa','creatinkinasa','creatinquinasa','ck total','ck','cpk']},
+  {ab:'bnp',      p:['bnp']},
+  {ab:'ntprobnp', p:['pro peptido natriuretico tipo b','nt-pro-bnp','nt-probnp','nt probnp','ntprobnp','pro-bnp','pro bnp']},
+
+  // ── Endocrino ──────────────────────────────────────────────────────────────
+  {ab:'tsh',      p:['hormona tiroestimulante (tsh)','hormona tiroestimulante','tsh']},
+  {ab:'t4l',      p:['tiroxina libre (t4l)','tiroxina libre','t4 libre','t4l']},
+  {ab:'t3',       p:['t3 total','t3 libre','t3']},
+  {ab:'hba1c',    p:['hemoglobina glicada (hba1c)','hemoglobina glicosilada (hba1c)','hemoglobina glicosilada','hemoglobina glicada','hba1c','a1c']},
+  {ab:'cortisol', p:['cortisol']},
+  {ab:'pth',      p:['paratohormona','parathormona','pth']},
+  {ab:'vit-d',    p:['vitamina d','25-oh-d','25 oh d','25ohd']},
+
+  // ── Digestivo / Vitaminas ──────────────────────────────────────────────────
+  {ab:'amilasa',  p:['amilasa']},
+  {ab:'lipasa',   p:['lipasa']},
+  {ab:'b12',      p:['vitamina b12','cobalamina','b12']},
+  {ab:'folato',   p:['acido folico','folato']},
+
+  // ── Lípidos ────────────────────────────────────────────────────────────────
+  {ab:'colt',     p:['colesterol total','col total','colesterol']},
+  {ab:'hdl',      p:['colesterol hdl','hdl-colesterol','hdl']},
+  {ab:'ldl',      p:['colesterol ldl','ldl-colesterol','ldl']},
+  {ab:'tg',       p:['trigliceridos']},
+  {ab:'vldl',     p:['vldl']},
+
+  // ── Autoinmune / Reumatológico ─────────────────────────────────────────────
+  {ab:'ana',       p:['anticuerpos anti nucleares','anticuerpos antinucleares','ana']},
+  {ab:'titulo-ana',p:['titulo nuclear','titulo anca']},
+  {ab:'anti-ena',  p:['anticuerpos anti ena','anti-ena','anti ena']},
+  {ab:'anti-dsdna',p:['anticuerpos anti dsdna','anticuerpos anti-dsdna','anti-dsdna','anti dsdna']},
+  {ab:'anca-c',    p:['anticuerpo anca-c','anca-c','anca c']},
+  {ab:'anca-p',    p:['anticuerpo anca-p','anca-p','anca p']},
+  {ab:'mpo',       p:['anticuerpos anti mieloperoxidasa','anti mieloperoxidasa','anti-mpo','mpo']},
+  {ab:'pr3',       p:['anticuerpos anti proteinasa 3','anti proteinasa 3','anti-pr3','pr3']},
+  // anti-ccp: incluye "anticuerpos anti peptido c" (sin "citrulinado") para el formato HHHA
+  {ab:'anti-ccp',  p:['anticuerpos anti peptido c citrulinado','anticuerpos anti peptido c','anticuerpos anti-ccp','anti-ccp','anti ccp']},
+  {ab:'c3',        p:['complemento c3','c3']},
+  {ab:'c4',        p:['complemento c4','c4']},
+  {ab:'fr',        p:['factor reumatoideo','factor reumatoide','fr']},
+  {ab:'anti-ro52', p:['ro-52','ro 52','anti-ro52','anti ro52']},
+  {ab:'anti-jo1',  p:['jo-1','jo 1','anti-jo1','anti jo1']},
+
+  // ── Serología hepatitis ────────────────────────────────────────────────────
+  {ab:'hbsag-q',  p:[
+    'antigeno de superficie virus hepatitis b (vhb) cuantitativo',
+    'antigeno de superficie virus hepatitis b cuantitativo',
+    'ntigeno de superficie virus hepatitis b (vhb) cuantitativo',
+    'hbsag cuantitativo'
+  ]},
+  {ab:'hbsag',    p:[
+    'antigeno de superficie virus hepatitis b (vhb)',
+    'antigeno de superficie virus hepatitis b',
+    'ntigeno de superficie virus hepatitis b (vhb)',
+    'ntigeno de superficie virus hepatitis b',
+    'hbsag'
+  ]},
+  {ab:'anti-hbs', p:[
+    'anticuerpos anti antigeno superficie virus hepatitis b (anti hbs)',
+    'anticuerpos anti antigeno superficie virus hepatitis b',
+    'anti-hbs','anti hbs','anti hbsag'
+  ]},
+  {ab:'anti-hbc', p:[
+    'anticuerpos (igm) anti core virus hepatitis b (vhb)',
+    'anticuerpos igm anti core virus hepatitis b (vhb)',
+    'anticuerpos igm anti core virus hepatitis b',
+    'anticuerpos anti core virus hepatitis b',
+    'anti-hbc','anti hbc'
+  ]},
+  {ab:'anti-hcv', p:['anti-hcv','anticuerpos hcv','anticuerpos hepatitis c','hcv']},
+  {ab:'vdrl',     p:['vdrl sangre','vdrl','sifilis']},
+  {ab:'vih',      p:['anti-vih','anti-hiv','vih','hiv']},
+
+  // ── Inmunoglobulinas ───────────────────────────────────────────────────────
+  {ab:'iga',      p:['inmunoglobulina a (iga)','inmunoglobulina a','iga']},
+  {ab:'igg',      p:['inmunoglobulina g (igg)','inmunoglobulina g','igg']},
+  {ab:'igm',      p:['inmunoglobulina m (igm)','inmunoglobulina m','igm']},
+  {ab:'ige',      p:['inmunoglobulina e total (ige)','inmunoglobulina e total','inmunoglobulina e','ige']},
+
+  // ── Marcadores tumorales ───────────────────────────────────────────────────
+  {ab:'afp',      p:['alfa-fetoproteina','alfafetoproteina','afp']},
+  {ab:'cea',      p:['antigeno carcinoembrionario (cea)','antigeno carcinoembrionario','cea']},
+  {ab:'psal',     p:['antigeno prostatico libre (psal)','antigeno prostatico libre','psal','psa libre']},
+  {ab:'psat',     p:['antigeno prostatico total (psat)','antigeno prostatico total','psat','psa total']},
+  {ab:'ca125',    p:['ca 125','ca125']},
+  {ab:'ca19-9',   p:['ca 19-9','ca19-9','ca 19 9']},
+
+  // ── PCR respiratorio ───────────────────────────────────────────────────────
+  {ab:'rinovirus', p:['arn rinovirus humano','rinovirus humano','rinovirus']},
+  {ab:'covid',     p:['arn sars-cov-2','sars-cov-2','covid-19','covid19','covid']},
+  {ab:'influenza-a',p:['arn virus influenza a','influenza a tipo a','influenza a','influenza tipo a']},
+  {ab:'influenza-b',p:['arn virus influenza b','influenza b tipo b','influenza b','influenza tipo b']},
+  {ab:'vrs',       p:['arn virus respiratorio sincicial','virus respiratorio sincicial','vrs']},
+  {ab:'parainfluenza',p:['arn virus parainfluenza','virus parainfluenza','parainfluenza']},
+  {ab:'adeno',     p:['adn adenovirus','arn adenovirus','adenovirus']},
+  {ab:'metapneumo',p:['arn metapneumovirus humano','metapneumovirus humano','metapneumovirus']},
+
+  // ── Quantiferon / Grupo sanguíneo ──────────────────────────────────────────
+  {ab:'quantiferon',p:['quantiferon tb gold','quantiferon tb','quantiferon','igra']},
+  {ab:'grupo-abo', p:['clasificacion grupo abo','grupo sanguineo abo','grupo abo']},
+  {ab:'factor-rh', p:['clasificacion factor rh','factor rh','grupo rh']},
+
+  // ── Orina (cuantitativo) ───────────────────────────────────────────────────
+  {ab:'crea-o',    p:['creatinuria','creatinina orina','creatinina en orina']},
+  {ab:'micro-alb', p:['microalbuminuria','albumina orina']},
+  {ab:'rel-mac',   p:['relacion microalbuminuria/creatinuria','relacion microalbuminuria creatinuria']},
+  {ab:'prot-24h',  p:['proteinas en orina 24 horas','proteinuria 24 horas','proteinas orina 24']},
+  {ab:'prot-o',    p:['proteinas orina','proteinuria','proteinas en orina']},
+  {ab:'diuresis',  p:['diuresis']},
+
+  // ── Sedimento de orina ─────────────────────────────────────────────────────
+  // Formatos HHHA: "LEUCOCITOS (WBC) 0-3" y "Leucocitos en orina 5-10 xCPO"
+  {ab:'leu-sed',   p:[
+    'leucocitos (wbc)','leucocitos en orina x campo','leucocitos x campo',
+    'leucocitos xcpo','leucocitos/campo','leucocitos por campo',
+    'leucocitos orina x campo','leucocitos orina','leucocitos en orina',
+    'gb orina'
+  ]},
+  {ab:'eri-sed',   p:[
+    'eritrocitos (rbc)','eritrocitos en orina x campo','eritrocitos x campo',
+    'eritrocitos xcpo','eritrocitos/campo','eritrocitos por campo',
+    'eritrocitos orina x campo','eritrocitos orina','eritrocitos en orina',
+    'gr orina'
+  ]},
+  {ab:'car-eri-sed',p:[
+    'caracteristicas de eritrocitos orina','caracteristicas eritrocitos en orina',
+  ]},
+  {ab:'cilindros', p:[
+    'cilindros hialinos','cilindros granulosos','cilindros eritrocitarios',
+    'cilindros leucocitarios','cilindros cerosc','cilindros epiteliales',
+    'cilindros','cilindro'
+  ]},
+  {ab:'cristales', p:[
+    'cristales de oxalato de calcio','cristales de acido urico',
+    'cristales de fosfato','cristales','cristal'
+  ]},
+  {ab:'bacterias', p:['bacterias','bacterias en orina']},
+];
+
+// ── Grupos compactados ─────────────────────────────────────────────────────────
+const GRUPOS=[
+  ['bilid','bilii','bilit'],['got','gpt'],
+  ['na','k','cl'],['ca','mg','p'],
+  ['ph','pco2','po2','hco3'],
+  ['colt','hdl','ldl','tg'],
+  ['ck','ckmb'],['urea','bun'],
+  ['tropoi','tropot'],['psal','psat'],
+  ['iga','igg','igm'],['c3','c4'],
+  ['leu-sed','eri-sed'],
+];
+
+// ════════════════════════════════════════════════════
+// ALTERNATIVAS DE VALOR
+// ════════════════════════════════════════════════════
+const VALOR_RE=[
+  // Operador + número: < 0.35, > 70000, ≥ 801
+  /[<>≤≥]\s*\d+(?:[.,]\d+)?/,
+  // Titer / fracción: 1/1280, 1/80 (específico para ANA)
+  /\d+\/\d{2,}/,
+  // Rango sin espacios (sedimento): 0-3, 5-10
+  /\d+[-–]\d+/,
+  // Decimal o entero: 210.00, 36.06, 97
+  /-?\d{1,4}(?:[.,]\d{3})*(?:[.,]\d+)?|-?\d+(?:[.,]\d+)?/,
+  // Cualitativos — orden: más específicos primero
+  /no\s*reactivo|no\s*detectado|no\s*se\s*observa|no\s*aplica/i,
+  /negativo|positivo|reactivo|indetectable|normal/i,
+  /ausentes?/i,
+  /escasos?/i,
+  /abundantes?/i,
+  /raros?/i,
+  /dismorficos?/i,
+  /isomorficos?/i,
+  /hipomorficos?/i,
+  /anisocitosis/i,
+  /microcitosis/i,
+  /macrocitosis/i,
+  /hipocromia?/i,
+  /normocromia?/i,
+  /normocitos?/i,
+  /normales?/i,
+  /granulacion/i,
+  /hialinos?/i,
+  /granulosos?/i,
+  /eritrocitarios?/i,
+  /leucocitarios?/i,
+];
+
+// ════════════════════════════════════════════════════
+// BÚSQUEDA EN DOS PASOS
+// 1. Encontrar el nombre del examen en el texto
+// 2. Buscar el valor en una ventana limpia después del nombre
+// ════════════════════════════════════════════════════
+function formatVal(v){
+  if(!v) return null;
+  v = v.trim();
+  if(/^[<>≤≥]/.test(v)){
+    const p=v.match(/([<>≤≥])\s*(.+)/);
+    if(p) v=`${p[1]} ${parseNum(p[2])}`;
+  } else if(/^\d+[-–]\d+$/.test(v)){
+    // Rango de sedimento: conservar
+  } else if(/^\d+\/\d/.test(v)){
+    // Titer: conservar como fracción
+  } else if(/\d/.test(v)){
+    v=parseNum(v);
+  } else {
+    v=v.toLowerCase().replace(/\s+/g,' ');
+  }
+  return v;
+}
+
+function parseNum(s){
+  s=s.trim();
+  if(s.includes('.')&&s.includes(',')){
+    return s.lastIndexOf(',')>s.lastIndexOf('.')?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');
+  }
+  if(s.includes(',')){const p=s.split(',');return(p.length===2&&p[1].length<=3)?s.replace(',','.'):s.replace(/,/g,'');}
+  return s;
+}
+
+function buscarValor(textoPrep, patrones){
+  const valAlt = VALOR_RE.map(r=>r.source).join('|');
+  // Busca el valor al inicio de una ventana (permite separadores simples)
+  const valReStart = new RegExp('^[\\s:=\\-]*('+valAlt+')', 'i');
+  // Busca el primer valor en cualquier posición de la ventana
+  const valReAny   = new RegExp('[\\s:=\\-]*('+valAlt+')', 'i');
+
+  const ordenados = [...patrones].sort((a,b)=>b.length-a.length);
+
+  for(const pat of ordenados){
+    const pn = norm(pat);
+    // Paso 1: encontrar el nombre
+    const nameRe = new RegExp(
+      '(?:^|[\\s,;|()\\[\\]])'+
+      pn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+
+      '(?:\\s*\\([^)]{0,40}\\))?',  // opcional "(NT-PROBNP)", "(MPO)", etc.
+      'i'
+    );
+    const nm = textoPrep.match(nameRe);
+    if(!nm) continue;
+
+    // Paso 2: ventana de 350 chars después del nombre
+    const startPos = nm.index + nm[0].length;
+    const ventana = textoPrep.substring(startPos, startPos + 350);
+
+    // Intenta al inicio de la ventana primero
+    let vm = ventana.match(valReStart);
+    if(vm) return formatVal(vm[1]);
+
+    // Si no, busca el primer valor en los primeros 200 chars
+    const vm2 = ventana.substring(0,200).match(valReAny);
+    if(vm2) return formatVal(vm2[1]);
+  }
+  return null;
+}
+
+// ════════════════════════════════════════════════════
+// FECHA
+// ════════════════════════════════════════════════════
+function extraerFecha(texto){
+  const prio=texto.match(/(?:fecha[\/\s]*hora\s*(?:de\s*)?t(?:oma)?\.?\s*(?:de\s*)?muestra|fecha\s*de\s*toma)[^\d]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i);
+  if(prio){const a=prio[3].length===2?'20'+prio[3]:prio[3];return `${prio[1].padStart(2,'0')}/${prio[2].padStart(2,'0')}/${a}`;}
+  const m=texto.match(/\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})\b/);
+  if(m){const a=m[3].length===2?'20'+m[3]:m[3];return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${a}`;}
+  return null;
+}
+
+// ════════════════════════════════════════════════════
+// EXTRACTOR PRINCIPAL
+// ════════════════════════════════════════════════════
+function extraer(texto){
+  const textoPrep = prepararTexto(texto);
+  const resultados=[];const encontrados=new Set();
+  for(const ex of EXAMENES){
+    if(encontrados.has(ex.ab)) continue;
+    const v=buscarValor(textoPrep,ex.p);
+    if(v!==null){resultados.push({ab:ex.ab,valor:v});encontrados.add(ex.ab);}
+  }
+  return resultados;
+}
+
+// ════════════════════════════════════════════════════
+// COMPACTACIÓN CON GRUPOS
+// ════════════════════════════════════════════════════
+function compactar(resultados,abreviar){
+  if(!abreviar) return resultados.map(r=>`${r.ab} ${r.valor}`);
+  const usados=new Set();const salida=[];
+  for(let i=0;i<resultados.length;i++){
+    if(usados.has(i)) continue;
+    const a=resultados[i];
+    let gFound=null;
+    for(const g of GRUPOS) if(g.includes(a.ab)){gFound=g;break;}
+    if(gFound){
+      const mbs=[{idx:i,r:a}];
+      for(let j=i+1;j<resultados.length&&j<i+gFound.length+2;j++){
+        if(usados.has(j)) continue;
+        if(gFound.includes(resultados[j].ab)&&resultados[j].ab!==a.ab&&!mbs.some(m=>m.r.ab===resultados[j].ab))
+          mbs.push({idx:j,r:resultados[j]});
+      }
+      if(mbs.length>=2){
+        mbs.sort((a,b)=>gFound.indexOf(a.r.ab)-gFound.indexOf(b.r.ab));
+        salida.push(mbs.map(m=>m.r.ab).join('/')+' '+mbs.map(m=>m.r.valor).join('/'));
+        mbs.forEach(m=>usados.add(m.idx));continue;
+      }
+    }
+    salida.push(`${a.ab} ${a.valor}`);usados.add(i);
+  }
+  return salida;
+}
+
+// ════════════════════════════════════════════════════
+// EJEMPLO REAL (extracto del PDF subido)
+// ════════════════════════════════════════════════════
+const EJEMPLO=`INFORME DE RESULTADOS
+LABORATORIO CLÍNICO
+HOSPITAL INTERCULTURAL DE NUEVA IMPERIAL
+Nombre : ROBERTO BERNARDO PINO ALVAREZ
+RUN : 10.168.898-4
+Fecha/Hora de T. muestra : 11-03-2026 05:32:44
+
+ANTICUERPOS ANTI NUCLEARES Positivo INMUNOFLUORESCENCIA INDIRECTA
+Negativo
+TITULO NUCLEAR 1/1280 INMUNOFLUORESCENCIA INDIRECTA
+PATRON CITOPLASMATICO Negativo INMUNOFLUORESCENCIA INDIRECTA
+Negativo
+
+ANTICUERPOS ANTI ENA 15.21 Unidades ELISA INDIRECTO
+0.00 - 19.99
+
+ANTICUERPOS ANTI dsDNA 36.06 UI/mL ELISA INDIRECTO
+0.00 - 200.00
+INTERPRETACION
+Negativo 0 - 200
+No concluyente 201 - 300
+Positivo Moderado 301 - 800
+Positivo Fuerte >= 801
+
+ANTICUERPO ANCA-C Negativo INMUNOFLUORESCENCIA INDIRECTA
+Negativo
+ANTICUERPO ANCA-P Positivo INMUNOFLUORESCENCIA INDIRECTA
+Negativo
+
+ANTICUERPOS ANTI MIELOPEROXIDASA
+(MPO)
+INTERPRETACION
+Negativo <= 20
+Positivo Débil 21 - 30
+Positivo Fuerte > 30
+h ELISA INDIRECTO
+55.54 Unidades
+0.00 - 20.00
+
+ANTICUERPOS ANTI PROTEINASA 3
+(PR-3)
+INTERPRETACION
+Negativo <= 20
+Positivo Débil 21 - 30
+Positivo Fuerte > 30
+2.23 Unidades ELISA INDIRECTO
+0.00 - 20.00
+
+ANTICUERPOS ANTI PEPTIDO C
+<8.00 U/mL 0 - 17
+
+HAPTOGLOBINA 210.00 mg/dL
+h INMUNOTURBIDIMETRIA
+30 - 200
+
+TIEMPO DE TROMBOPLASTINA PARCIAL
+ACTIVADO
+h COAGULOMETRICO
+60.10 Segundos
+26.30 - 40.30
+TIEMPO DE PROTROMBINA 17.90 Segundos 12.80 - 17.40
+INR 1.39 0.80 - 1.20
+% TP 63.00 % 70.00 - 100.00
+
+PRO PEPTIDO NATRIURETICO TIPO B
+(NT-PROBNP)
+h ECLIA
+1197.00 pg/mL
+0 - 125
+
+TROPONINA T VC h
+165.00 ng/L
+0.00 - 14.00
+
+HEMOGLOBINA i 8.20 g/dL 12.30 - 15.30
+HEMATOCRITO i 24.50 % 35.00 - 47.00
+RECUENTO DE LEUCOCITOS 8.94 10^3/uL 4.00 - 11.00
+NEUTROFILOS % h 78.00 % 37 - 72
+LINFOCITOS % i 14.80 % 20 - 70
+MONOCITOS % 3.60 % 0 - 14
+RECUENTO DE PLAQUETAS 216 10^3/uL 150 - 450
+VCM- VOLUMEN CORPUSCULAR MEDIO i 75.20 fL 82 - 95
+RDW h 22.30 % 11.50 - 14.50
+VELOCIDAD DE ERITROSEDIMENTACION
+(VHS) SANGRE
+h REOSCOPIA FOTOMETRICA
+45.00 mm/h
+2 - 15
+
+CARACTERISTICAS ERITROCITOS Anisocitosis ++ microcitosis ++ macrocitosis +
+CARACTERISTICAS LEUCOCITOS Granulación patológica ++
+CARACTERISTICAS PLAQUETAS Normales
+
+CREATININA h 3.41 mg/dL 0.7 - 1.2
+VFG 18.4 mL/min
+ELECTROLITO SODIO i 133.60 mEq/L 135.00 - 145.00
+ELECTROLITO POTASIO 4.55 mEq/L 3.50 - 5.00
+ELECTROLITO CLORO 98.90 mEq/L 90.00 - 107.00
+ALBUMINA i 2.77 g/dL 3.40 - 4.80
+CALCIO i 7.94 mg/dL 8.80 - 10.20
+UREA h 126.00 mg/dL 16.60 - 48.50
+NITROGENO UREICO (BUN) h 58.9 mg% 6.00 - 22.00
+HIERRO i 8.77 ug/dL 33 - 193
+TIBC i 202.77 ug/dL 228 - 428
+FERRITINA h 489.00 ng/mL 15 - 150
+SATURACION DE TRANSFERRINA i 4.33 % 16.00 - 45.00
+TRANSFERRINA 169.00 mg/dL 130.00 - 360.00
+AMONIO 60.30 ug/dL 27.20 - 102.00
+PROTEINA C REACTIVA (CRP) h 140.00 mg/L 0 - 5
+PROCALCITONINA h 16.10 ng/mL 0 - 0.5
+HORMONA TIROESTIMULANTE (TSH) h 10.20 uUI/mL 0.27 - 4.20
+VITAMINA B12 697.00 pg/mL 197.00 - 771.00
+FOSFATASAS ALCALINAS 88.40 U/L 40.00 - 129.00
+GAMAGLUTAMIL TRANSFERASA (GGT) 36.90 U/L 10.00 - 66.00
+ALANINA AMINO TRANSFERASA
+(ALAT/GPT)
+6.90 U/L 0.00 - 50.00
+ASPARTATO AMINO TRANSFERASA
+(ASAT/GOT)
+8.10 U/L 0.00 - 50.00
+BILIRRUBINA DIRECTA 0.09 mg/dL 0 - 0.3
+BILIRRUBINA INDIRECTA 0.14 mg/dL 0.00 - 0.80
+BILIRRUBINA TOTAL 0.23 mg/dL 0.00 - 1.00
+
+pH 7.38 [pH] 7.35 - 7.45
+pO2 h 111.70 mm/Hg 75.00 - 100.00
+PCO2 39.50 mm/Hg
+HCO3 22.60 mmol/L
+TCO2 h 53.30 mmol/L 22.00 - 29.00
+BEB -2.40 mmol/L -3.00 - 3.00
+SBC 98.10 mmol/L
+% SATURACION O2 h 98.40 % 95.00 - 98.00
+FIO2 0.26
+
+CALCIO IONICO 4.43 mg/dL 4.37 - 5.21
+
+MICROALBUMINURIA h 66.60 mg/L 0 - 20
+CREATINURIA 46.70 mg/dL 39 - 259
+RELACION MICROALBUMINURIA/
+CREATINURIA h 142.61 mg/g 0.00 - 30.00
+PROTEINAS EN ORINA 24 HORAS h 336.0 mg/24 horas Menor a 150
+DIURESIS 2000 mL
+
+LEUCOCITOS (WBC) 0-3 0 - 3
+ERITROCITOS (RBC) 0-3 0 - 3
+CILINDROS No se observa No se observa
+CRISTALES No se observa No se observa
+BACTERIAS Escasas No se observa
+
+CLASIFICACION GRUPO ABO O MICROHEMAGLUTINACION EN COLUMNA
+CLASIFICACION FACTOR RH Positivo MICROHEMAGLUTINACION EN COLUMNA
+
+QUANTIFERON TB < 0.35 UI/mL
+ARN VIRUS INFLUENZA A No detectado No detectado
+ARN VIRUS INFLUENZA B No detectado No detectado
+ARN VIRUS RESPIRATORIO SINCICIAL No detectado No detectado
+ARN SARS-COV-2 No detectado No detectado
+ARN RINOVIRUS HUMANO No detectado No detectado
+ARN VIRUS PARAINFLUENZA No detectado No detectado
+ADN ADENOVIRUS No detectado No detectado
+VIH No reactivo No reactivo
+VDRL SANGRE No reactivo No Reactivo
+
+ANTICUERPOS ANTI ANTIGENO
+SUPERFICIE VIRUS HEPATITIS B (ANTI
+HBS)
+1909.00 UI/L < 10 UI/L
+ANTICUERPOS (IGM) ANTI CORE VIRUS
+HEPATITIS B (VHB)
+h ECLIA
+0.13 COI
+0 - 0.11
+ANTIGENO DE SUPERFICIE VIRUS
+HEPATITIS B (VHB)
+No Reactivo ECLIA
+ANTIGENO DE SUPERFICIE VIRUS
+HEPATITIS B (VHB) CUANTITATIVO
+0.502 COI
+
+COLESTEROL HDL 62.60 mg/dL 35.00 - 80.00
+COLESTEROL LDL h 99.70 mg/dL 0 - 99
+COLESTEROL TOTAL 181.00 mg/dL 0 - 199
+TRIGLICERIDOS 142.00 mg/dL 0 - 150
+VLDL 28 mg/dL 0 - 30
+
+INMUNOGLOBULINA A (IGA) 258.00 mg/dL 70.00 - 400.00
+INMUNOGLOBULINA G (IGG) 854.00 mg/dL 700.00 - 1600.00
+INMUNOGLOBULINA M (IGM) 80.70 mg/dL 40 - 230
+INMUNOGLOBULINA E TOTAL (IGE) 82.80 UI/mL 0 - 100
+TIROXINA LIBRE (T4L) 1.12 ng/dL 0.93 - 1.71
+
+ANTICUERPOS ANTI ENA 15.21 Unidades 0.00 - 19.99
+ALFA-FETOPROTEINA 2.78 ng/mL Menor a 7
+ANTIGENO CARCINOEMBRIONARIO (CEA) 3.06 ng/mL
+ANTIGENO PROSTATICO LIBRE (PSAL) 0.17 ng/mL 0.01 - 0.1
+ANTIGENO PROSTATICO TOTAL (PSAT) 0.62 ng/mL 0.00 - 4.00
+CA 125 76.20 U/mL 0.00 - 35.00
+CA 19-9 39.90 U/mL 0 - 27`;
+
+// ════════════════════════════════════════════════════
+// UI
+// ════════════════════════════════════════════════════
+function esc(s){return String(s).replace(/[<>]/g,c=>c==='<'?'&lt;':'&gt;');}
+const $=id=>document.getElementById(id);
+
+function procesar(){
+  const texto=$('entrada').value;
+  if(!texto.trim()){$('out').style.display='none';return;}
+  const fecha=extraerFecha(texto);
+  const resultados=extraer(texto);
+  if(!resultados.length){
+    $('linea').textContent='No se reconocieron exámenes en el texto.';
+    $('info').textContent='';$('tabla').innerHTML='';
+    $('out').style.display='block';return;
+  }
+  const partes=compactar(resultados,$('cabr').checked);
+  let linea=partes.join(', ');
+  if(fecha&&$('cfecha').checked) linea=`${fecha}: ${linea}`;
+  $('linea').textContent=linea;
+  $('info').textContent=`// ${resultados.length} examen${resultados.length===1?'':'es'} reconocido${resultados.length===1?'':'s'}${fecha?' · fecha: '+fecha:''}`;
+  let html='<div class="grid"><div class="gh">examen</div><div class="gh">valor</div>';
+  for(const r of resultados)
+    html+=`<div>${esc(r.ab)}</div><div class="gv"><b>${esc(r.valor)}</b></div>`;
+  html+='</div>';
+  $('tabla').innerHTML=html;
+  $('out').style.display='block';
+}
+
+$('bex').onclick=procesar;
+$('bcl').onclick=()=>{$('entrada').value='';$('out').style.display='none';$('entrada').focus();};
+$('bej').onclick=()=>{$('entrada').value=EJEMPLO;procesar();};
+$('bcop').onclick=()=>{
+  const t=$('linea').textContent;
+  const done=()=>{$('tcop').textContent='copiado ✓';setTimeout(()=>$('tcop').textContent='copiar',1500);};
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(fb);
+  else fb();
+  function fb(){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);done();}
+};
+$('cfecha').onchange=$('cabr').onchange=()=>{if($('out').style.display!=='none')procesar();};
+$('entrada').addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();procesar();}
+});
+})();
+</script>
+</body>
+</html>
